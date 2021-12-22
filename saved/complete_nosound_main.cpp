@@ -27,6 +27,7 @@ typedef GET_SECONDS_ELAPSED(GetSecondsElapsed);
 typedef GET_MS_ELAPSED(GetMsElapsed);
 
 typedef struct Clock{
+    i32 dt;
     i64 frequency;
     GetTicks* get_ticks; 
     GetSecondsElapsed* get_seconds_elapsed; 
@@ -60,8 +61,12 @@ typedef struct Memory{
     void* base;
     size_t size;
 
+    void* permanent_base;
     size_t permanent_size;
+    void* transient_base;
     size_t transient_size;
+
+    bool initialized;
 } Memory;
 
 global bool global_running;
@@ -134,10 +139,7 @@ GET_MS_ELAPSED(get_ms_elapsed){
     return(result);
 }
 
-//update_game(&memory, &render_buffer, &controller, &clock);
-static void update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller, Clock* clock){
-    i32 a = 1;
-}
+#include "game.h"
 
 LRESULT win_message_handler_callback(HWND window, UINT message, WPARAM w_param, LPARAM l_param){
     LRESULT result = 0;
@@ -199,6 +201,8 @@ i32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, i32 win
     memory.transient_size = Gigabytes(4);
     memory.size = memory.permanent_size + memory.transient_size;
     memory.base = VirtualAlloc(0, memory.size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+    memory.permanent_base = memory.base;
+    memory.transient_base = (u8*)memory.base + memory.permanent_size;
 
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
@@ -206,6 +210,7 @@ i32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, i32 win
     clock.get_ticks = get_ticks;
     clock.get_seconds_elapsed = get_seconds_elapsed;
     clock.get_ms_elapsed = get_ms_elapsed;
+    clock.dt = 1/60;
 
     if(RegisterClassA(&window_class)){
         HWND window = CreateWindowA(window_class.lpszClassName, "Title", WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, instance, 0);
@@ -219,15 +224,6 @@ i32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, i32 win
                 while(PeekMessageA(&message, window, 0, 0, PM_REMOVE)){
                     TranslateMessage(&message);
                     DispatchMessage(&message);
-                }
-
-                u8* row = (u8*)render_buffer.base;
-                for(i32 y=0; y < render_buffer.height; ++y){
-                    u32* pixel = (u32*)row;
-                    for(i32 x=0; x < render_buffer.width; ++x){
-                        *pixel++ = (100 << 16|100);
-                    }
-                    row += render_buffer.stride;
                 }
 
                 update_game(&memory, &render_buffer, &controller, &clock);
