@@ -1,17 +1,17 @@
 
 #define Assert(x) if(!(x)) __debugbreak()
 
-typedef struct PermanentState{
-} PermanentState, State;
-
-typedef struct TransientState{
-} TransientState;
-
 typedef struct Arena{
     void* base;
     size_t size;
     size_t used;
 } Arena;
+
+typedef struct PermanentState{
+} PermanentState, State;
+
+typedef struct TransientState{
+} TransientState;
 
 static void render_something(RenderBuffer* render_buffer){
     u8* row = (u8*)render_buffer->base;
